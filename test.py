@@ -18,7 +18,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-task_name", type=str, default="UniVesselSeg")
     parser.add_argument("-model_type", type=str, default="vit_b")
-    parser.add_argument("-checkpoint_path", type=str, default="../UniVesselSeg-2024XXXX-XXXX")
+    parser.add_argument("-sam_checkpoint_path", type=str, default="../sam_model_best.pth")
+    parser.add_argument("-refine_net_checkpoint_path", type=str, default="../refinement_model_best.pth")
     parser.add_argument("-test_data_root", type=str, default="../test")
     parser.add_argument("-batch_size", type=int, default=1)
     parser.add_argument("-num_workers", type=int, default=4)
@@ -31,8 +32,8 @@ def main():
     os.makedirs(os.path.join(args.save_dir,"initial"), exist_ok=True)
     os.makedirs(os.path.join(args.save_dir,"refine"), exist_ok=True)
 
-    sam_checkpoint = os.path.join(args.checkpoint_path, "sam_model_best.pth")
-    refine_checkpoint = os.path.join(args.checkpoint_path, "refinement_model_best.pth")
+    sam_checkpoint = args.sam_checkpoint_path
+    refine_checkpoint = args.refine_net_checkpoint_path
     
     sam_model = sam_model_registry[args.model_type](checkpoint=sam_checkpoint)
     sam_model = SAM(
