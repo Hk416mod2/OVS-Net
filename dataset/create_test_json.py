@@ -20,7 +20,6 @@ def create_segmentation_dataset_json(image_folder, mask_folder, test_json):
     with open(test_json, 'w') as f:
         json.dump(test_dataset, f, indent=4)
 
-# 使用示例
 image_folder = '../test/images'
 mask_folder = '../test/masks'
 test_json = 'image2label_test.json'
