@@ -16,4 +16,7 @@ git clone https://github.com/Hk416mod2/UniVesselSeg
 cd UniVesselSeg/
 pip install -r requirement.txt
 ```
+## Inference
+
+you can download our model checkpoints at [here](https://drive.google.com/drive/folders/1cF5BMRBkTyZNYsUxDOR2EgE-g8Kq-hg8?usp=sharing)
 
