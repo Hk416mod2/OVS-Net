@@ -1,7 +1,6 @@
 import numpy as np
 import os
 import torch
-import torch.nn as nn
 from torch.utils.data import  DataLoader
 import torch.nn.functional as F
 from segment_anything import sam_model_registry
