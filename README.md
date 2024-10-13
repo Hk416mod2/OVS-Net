@@ -32,7 +32,7 @@ dataset/
     ├── masks/
     └── image2label_test.json
 ```
-We have prepared a script for generating JSON in `dataset`
+We have prepared a script for generating JSON in `/dataset`
 
 ### Train model
 Run `python train.py`
