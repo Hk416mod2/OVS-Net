@@ -35,10 +35,13 @@ dataset/
 We have prepared a script for generating JSON in `dataset`
 
 ### Train model
-`python train.py`
+Run `python train.py`
 
-### Test
-`python test.py`
+## Test
+Set checkpoint path `args.sam_checkpoint_path` & `args.refinement_net_checkpoint_path` in `python test.py`
+Run `python test.py`
 
-you can download our model checkpoints at [here](https://drive.google.com/drive/folders/1cF5BMRBkTyZNYsUxDOR2EgE-g8Kq-hg8?usp=sharing)
+you can also download our model checkpoints at [here](https://drive.google.com/drive/folders/1cF5BMRBkTyZNYsUxDOR2EgE-g8Kq-hg8?usp=sharing)
+
+
 
