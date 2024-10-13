@@ -4,7 +4,7 @@
 
 ## Installiation
 
-- Create a new conda environment\
-`conda create -n univesselseg python=3.10\
-conda activate univesselseg\
+- Create a new conda environment<br>
+`conda create -n univesselseg python=3.10<br>
+conda activate univesselseg<br>
 pip install -r requirement.txt`
