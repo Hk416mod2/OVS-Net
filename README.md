@@ -45,5 +45,5 @@ Run `python test.py`
 you can also download our model checkpoints at [here](https://drive.google.com/drive/folders/1cF5BMRBkTyZNYsUxDOR2EgE-g8Kq-hg8?usp=sharing)
 
 ## Vessel Datasset Collection
-We also Collectioin some vessel related datasets at [here](https://github.com/Hk416mod2/VesselDataset), hoping to advance the field of vessel analysis.
+We also collect some public/private vessel related datasets, [here](https://github.com/Hk416mod2/VesselDataset) is the list, hoping to advance the field of vessel analysis.
 
