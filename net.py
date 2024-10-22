@@ -51,7 +51,7 @@ class RefinementNet(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         # encoder
-        self.encoder1 = self.conv_block(self.n_channels, 64)
+        self.encoder1 = self.conv_block(self.in_channels, 64)
         self.encoder2 = self.conv_block(64, 128)
         self.encoder3 = self.conv_block(128, 256)
         self.encoder4 = self.conv_block(256, 512)
