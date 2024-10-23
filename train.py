@@ -10,7 +10,6 @@ import argparse
 from datetime import datetime
 import shutil
 from metrics import SegMetrics
-from post_process import RefinementNet
 from utils.cldice import soft_cldice
 from datasets import VesselDataset
 from torch.optim.lr_scheduler import ExponentialLR
