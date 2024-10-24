@@ -1,7 +1,7 @@
 # UniVesselSeg
 
 
-## UniVesselSeg: n universal vessel segmentation model with connective enhancement
+## UniVesselSeg: an universal vessel segmentation model with connective enhancement
 ![Method](./method.png)
 
 
