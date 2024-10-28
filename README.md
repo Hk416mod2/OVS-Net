@@ -1,7 +1,4 @@
-# UniVesselSeg
-
-
-## Optimized Vessel Segmentation: A Structure-Agnostic Approach with Small Vessel Enhancement and Morphological Correction
+# Optimized Vessel Segmentation: A Structure-Agnostic Approach with Small Vessel Enhancement and Morphological Correction
 ![Method](./method.png)
 
 
