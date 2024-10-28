@@ -1,7 +1,7 @@
 # UniVesselSeg
 
 
-## UniVesselSeg: an universal vessel segmentation model with connective enhancement
+## Optimized Vessel Segmentation: A Structure-Agnostic Approach with Small Vessel Enhancement and Morphological Correction
 ![Method](./method.png)
 
 
