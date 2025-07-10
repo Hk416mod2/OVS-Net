@@ -23,8 +23,8 @@ We use these dataset to train our model:
 | STARE        | Retina              | Fundus   | 605×700    | 14/2/4    | Public | https://cecas.clemson.edu/~ahoover/stare/ |
 | ROSE-1       | Retina              | OCTA     | 304×304    | 27/3/9    | Permission | https://imed.nimte.ac.cn/dataofrose.html |
 | ROSSA        | Retina              | OCTA     | 320×320    | 736/82/100 | Public | https://github.com/nhjydywd/OCTA-FRNet |
-| OCTA500-3M   | Retina              | OCTA     | 304×304    | 135/15/50  | Public | https://ieee-dataport.org/open-access/octa-500 |
-| OCTA500-6M   | Retina              | OCTA     | 400×400    | 180/20/100 | Public | https://ieee-dataport.org/open-access/octa-500 |
+| OCTA500-3M   | Retina              | OCTA     | 304×304    | 135/15/50  | Permission | https://ieee-dataport.org/open-access/octa-500 |
+| OCTA500-6M   | Retina              | OCTA     | 400×400    | 180/20/100 | Permission | https://ieee-dataport.org/open-access/octa-500 |
 | DrSAM        | Pelvic-Iliac Artery | X-Ray    | 386×448    | 360/40/100 | Public | https://drive.google.com/file/d/1TjxEJUD4VC_SAPcqdNVybsKRb_xW-Bze/view |
 
 
