@@ -35,4 +35,4 @@ We use these dataset to evaluate the out-of-domain generalization of our model:
 | Dataset            | Area                | Modality | Resolution | Access | Related Link   |
 |--------------------|---------------------|----------|------------|---------|---------------------------------------------------|
 | HRF        | Retina              | Fundus   | 3504×2336    | /15  | Public |  https://www5.cs.fau.de/research/data/fundus-images/|
-| IOSTAR         | Retina              | Fundus    | 1024×1024    | 20/10   | Public |  http://www.retinacheck.org/download-iostar-retinal-vessel-segmentation-dataset|
+| IOSTAR         | Retina              | Fundus    | 1024×1024    | 20/10   | Permission |  http://www.retinacheck.org/download-iostar-retinal-vessel-segmentation-dataset|
