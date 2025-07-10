@@ -1,5 +1,5 @@
 # Optimized Vessel Segmentation: A Structure-Agnostic Approach with Small Vessel Enhancement and Morphological Correction
-![Method](./method2.png)
+![Method](./method.png)
 
 
 
