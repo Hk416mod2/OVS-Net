@@ -33,7 +33,7 @@ We have placed some image samples and JSON generating scripts in `/Dataset`
 
 ### Train
 
-We use SAM vit-b checkpoint for finetuning, you can download it from [SAM](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)
+We use SAM vit-b checkpoint for finetuning, you can download it from [here](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)
 
 We use 5-fold cross validation, 0 fold is used by default, you can change it in the `-fold` parameter in `train.py`
 
