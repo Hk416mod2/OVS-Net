@@ -1,7 +1,49 @@
 # Optimized Vessel Segmentation: A Structure-Agnostic Approach with Small Vessel Enhancement and Morphological Correction
 ![Method](./method.png)
 
+## Usage
 
+### Installiation
+
+```
+conda create -n ovs python=3.12
+conda activate ovs
+git clone https://github.com/Hk416mod2/OVS-Net.git
+cd /OVS-Net
+pip install -r requirement.txt
+```
+
+### Data Prepare
+
+The datase structure is as follows:
+
+```
+dataset/
+├── train/
+│   ├── images/
+│   ├── masks/
+│   └── train_val_fold.json
+└── test/
+    ├── images/
+    ├── masks/
+    └── test.json
+```
+
+We have placed some image samples and JSON generating scripts in `/Dataset`
+
+### Train
+
+We use 5-fold cross validation, 0 fold is used by default, you can change it in the `-fold` parameter in `train.py`
+
+Run `python train.py`
+
+### Test
+
+Set checkpoint path in `python test.py`
+
+Run `python test.py`
+
+You can also download our model checkpoints at [here](https://drive.google.com/drive/folders/1Iq_EuKd1soDqz-aFluXi5W4vJUWgB6Tv?usp=drive_link)
 
 ## Dataset info
 
