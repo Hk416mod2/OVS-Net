@@ -1,0 +1,17 @@
+{
+    "images/ca_XCAD_15840_29.png": [
+        "masks/ca_XCAD_15840_29.png"
+    ],
+    "images/ca_XCAD_16028_20.png": [
+        "masks/ca_XCAD_16028_20.png"
+    ],
+    "images/ca_XCAD_15664_22.png": [
+        "masks/ca_XCAD_15664_22.png"
+    ],
+    "images/ca_XCAD_16102_35.png": [
+        "masks/ca_XCAD_16102_35.png"
+    ],
+    "images/ca_XCAD_15961_37.png": [
+        "masks/ca_XCAD_15961_37.png"
+    ]
+}
