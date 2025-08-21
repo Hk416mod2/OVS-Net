@@ -8,26 +8,53 @@ from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 import torch
 from utils.point_sampling import init_point_sampling
-from utils.get_fold_data import load_fold_data
 
 
 class VesselDataset(Dataset):
-    def __init__(self, data_root, mode='train', fold=0, bbox_shift=20):
-        fold_data = load_fold_data(data_root, fold)
+    def __init__(self, data_root, mode='train', bbox_shift=20):
+        self.data_root = data_root
+        self.mode = mode
+        self.bbox_shift = bbox_shift
+        self.point_num = 5
         
         if mode == 'train':
-            dataset = fold_data['train']
+            json_file = os.path.join(data_root, 'image2label_train.json')
         elif mode == 'val':
-            dataset = fold_data['val']
+            json_file = os.path.join(data_root, 'image2label_val.json')
         else:
             raise ValueError(f"Mode must be 'train' or 'val', got {mode}")
         
+        if not os.path.exists(json_file):
+            raise FileNotFoundError(f"JSON file not found: {json_file}")
+        
+        with open(json_file, 'r') as f:
+            dataset = json.load(f)
+        
         self.img_files = [os.path.join(data_root, img_path) for img_path in dataset.keys()]
         self.gt_files = [os.path.join(data_root, value[0]) for value in dataset.values()]
-        self.point_num = 5
-        self.bbox_shift = bbox_shift
         
-        print(f"Number of {mode} images in fold {fold}: {len(self.gt_files)}")
+        print(f"Number of {mode} images: {len(self.gt_files)}")
+        print(f"JSON file: {json_file}")
+        
+        self._validate_files()
+
+    def _validate_files(self):
+        missing_files = []
+        
+        for img_file, gt_file in zip(self.img_files, self.gt_files):
+            if not os.path.exists(img_file):
+                missing_files.append(f"Image: {img_file}")
+            if not os.path.exists(gt_file):
+                missing_files.append(f"GT: {gt_file}")
+        
+        if missing_files:
+            print(f"Warning: Found {len(missing_files)} missing files:")
+            for file in missing_files[:5]:  # 只显示前5个
+                print(f"  {file}")
+            if len(missing_files) > 5:
+                print(f"  ... and {len(missing_files) - 5} more")
+        else:
+            print("All files validated successfully!")
 
     def __len__(self):
         return len(self.gt_files)
@@ -39,11 +66,13 @@ class VesselDataset(Dataset):
         img_1024 = np.transpose(img_1024, (2, 0, 1))
         img_1024 = img_1024 / 255.0
 
-        gt = np.array(transforms.Resize((1024, 1024),InterpolationMode.NEAREST)(Image.open(self.gt_files[index]).convert('L')))
+        gt = np.array(transforms.Resize((1024, 1024), InterpolationMode.NEAREST)(Image.open(self.gt_files[index]).convert('L')))
         label_ids = np.unique(gt)[1:]
-        gt2D = np.uint8(
-            gt == random.choice(label_ids.tolist())
-        )
+        
+        if len(label_ids) == 0:
+            gt2D = np.zeros((1024, 1024), dtype=np.uint8)
+        else:
+            gt2D = np.uint8(gt == random.choice(label_ids.tolist()))
         
         assert np.max(gt2D) == 1 and np.min(gt2D) == 0.0, "Ground truth should be 0, 1"
         
@@ -56,15 +85,26 @@ class VesselDataset(Dataset):
             point_labels,
             img_name,
         )
-    
+
+
 class TestDataset(Dataset):
+
     def __init__(self, data_root):
-        dataset = json.load(open(os.path.join(data_root, 'test.json'), "r"))
-        # 修复路径拼接问题：将相对路径与data_root拼接
+        self.data_root = data_root
+        self.point_num = 1
+        
+        json_file = os.path.join(data_root, 'test.json')
+        if not os.path.exists(json_file):
+            raise FileNotFoundError(f"Test JSON file not found: {json_file}")
+        
+        with open(json_file, 'r') as f:
+            dataset = json.load(f)
+        
         self.img_files = [os.path.join(data_root, img_path) for img_path in dataset.keys()]
         self.gt_files = [os.path.join(data_root, value[0]) for value in dataset.values()]
-        self.point_num = 1
-        print(f"Number of images: {len(self.img_files)}")
+        
+        print(f"Number of test images: {len(self.img_files)}")
+        print(f"Test JSON file: {json_file}")
 
     def __len__(self):
         return len(self.img_files)
@@ -82,11 +122,14 @@ class TestDataset(Dataset):
 
         ori_gt = Image.open(self.gt_files[index]).convert('L')
 
-        gt = np.array(transforms.Resize((1024, 1024),InterpolationMode.NEAREST)(ori_gt))
+        gt = np.array(transforms.Resize((1024, 1024), InterpolationMode.NEAREST)(ori_gt))
         label_ids = np.unique(gt)[1:]
-        gt2D = np.uint8(
-            gt == random.choice(label_ids.tolist())
-        ) 
+        
+        if len(label_ids) == 0:
+            gt2D = np.zeros((1024, 1024), dtype=np.uint8)
+        else:
+            gt2D = np.uint8(gt == random.choice(label_ids.tolist()))
+        
         assert np.max(gt2D) == 1 and np.min(gt2D) == 0.0, "Ground truth should be 0, 1"
         point_coords, point_labels = init_point_sampling(gt2D, self.point_num)
 

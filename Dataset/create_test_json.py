@@ -9,7 +9,6 @@ def create_segmentation_dataset_json(image_folder, mask_folder, test_json):
 
     for image_file in test_files:
         if image_file.endswith('.png'):
-            # 使用相对于test目录的路径
             image_path = os.path.join("images", image_file)
             mask_paths = []
             for mask_file in os.listdir(mask_folder):
@@ -21,9 +20,8 @@ def create_segmentation_dataset_json(image_folder, mask_folder, test_json):
     with open(test_json, 'w') as f:
         json.dump(test_dataset, f, indent=4)
 
-# 使用示例
-image_folder = 'test/images'  # 相对于test目录的路径
-mask_folder = 'test/masks'    # 相对于test目录的路径
+image_folder = 'test/images'
+mask_folder = 'test/masks'
 test_json = 'test/test.json'
 
 create_segmentation_dataset_json(image_folder, mask_folder, test_json)

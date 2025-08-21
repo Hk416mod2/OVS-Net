@@ -16,16 +16,17 @@ from datasets import VesselDataset
 from torch.optim.lr_scheduler import ExponentialLR
 from net import SAM, RefinementNet
 import torch.nn.functional as F
+from torch.cuda.amp import autocast, GradScaler
 
-torch.manual_seed(114514)
+torch.manual_seed(2025)
 torch.cuda.empty_cache()
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-task_name", type=str, default="VesselSeg")
 parser.add_argument("-model_type", type=str, default="vit_b")
-parser.add_argument("-checkpoint", type=str, default="./sam_vit_b_01ec64.pth")
-parser.add_argument("-work_dir", type=str, default="./workdir_fold0")
+parser.add_argument("-checkpoint", type=str, default="/mnt/siat225_disk1/SDN/OVS-Net/UniVesselSeg/SAM-Med2D/pretrain_model/sam_vit_b_01ec64.pth")
+parser.add_argument("-work_dir", type=str, default="workdir")
 
 parser.add_argument("-num_epochs_sam", type=int, default=20)
 parser.add_argument("-num_epochs_refine", type=int, default=10)
@@ -33,12 +34,12 @@ parser.add_argument("-batch_size", type=int, default=2)
 parser.add_argument("-num_workers", type=int, default=4)
 parser.add_argument("--train_dataset", type=str, default="./Dataset/train")
 parser.add_argument("--device", type=str, default="cuda:0")
-parser.add_argument("--fold", type=int, default=0)  
 
 parser.add_argument("-weight_decay", type=float, default=0.01, help="weight decay (default: 0.01)")
 parser.add_argument("-lr", type=float, default=0.0001, metavar="LR", help="learning rate (absolute lr)")
-parser.add_argument("--resume", type=str, default="", help="Resuming training from checkpoint")
 parser.add_argument("--metrics", nargs='+', default=['iou', 'dice'], help="metrics")
+parser.add_argument("--use_amp", action="store_true", default=True, help="Enable automatic mixed precision")
+parser.add_argument("--amp_scale", type=float, default=2**16, help="Initial scale for GradScaler")
 args = parser.parse_args()
 
 
@@ -54,6 +55,16 @@ def main():
     )
     
     train_log_path, sam_log_path, refine_log_path = setup_logging(model_save_path, run_id, args)
+    
+    # Initialize AMP Training
+    if args.use_amp:
+        scaler_sam = GradScaler(init_scale=args.amp_scale)
+        scaler_refine = GradScaler(init_scale=args.amp_scale)
+        print(f"using amp: {args.amp_scale}")
+    else:
+        scaler_sam = None
+        scaler_refine = None
+        print("using standard precision training")
     
     sam_model = sam_model_registry[args.model_type](checkpoint=args.checkpoint)
     sam_model = SAM(
@@ -82,8 +93,8 @@ def main():
     cl_dice = soft_cldice()
     mse_loss = nn.MSELoss(reduction="mean")
 
-    train_dataset = VesselDataset(args.train_dataset, mode='train', fold=args.fold)
-    val_dataset = VesselDataset(args.train_dataset, mode='val', fold=args.fold)
+    train_dataset = VesselDataset(args.train_dataset, mode='train')
+    val_dataset = VesselDataset(args.train_dataset, mode='val')
 
     train_dataloader = DataLoader(
         train_dataset,
@@ -100,23 +111,16 @@ def main():
         pin_memory=True,
     )
 
-    start_epoch = 0
-    if args.resume is not None:
-        if os.path.isfile(args.resume):
-            checkpoint = torch.load(args.resume, map_location=device)
-            start_epoch = checkpoint["epoch"] + 1
-            sam_model.load_state_dict(checkpoint["model"])
-            optimizer_sam.load_state_dict(checkpoint["optimizer"])
 
-    print("*******Training SAM Model Stage*******")
+    print("*******Training SAM Model Stage with AMP*******")
     best_sam_metrics = train_sam(sam_model, train_dataloader, val_dataloader, optimizer_sam,
-                                seg_loss, ce_loss, args.num_epochs_sam, model_save_path, 
-                                args, sam_log_path)
+                                    seg_loss, ce_loss, args.num_epochs_sam, model_save_path, 
+                                    args, sam_log_path, scaler_sam)
 
-    log_training_summary(train_log_path, "SAM Model", best_sam_metrics, args.num_epochs_sam)
+    log_training_summary(train_log_path, "SAM Model (AMP)", best_sam_metrics, args.num_epochs_sam)
 
     torch.cuda.empty_cache()
-    print("*******Training Refinement Net Stage*******")
+    print("*******Training Refinement Net Stage with AMP*******")
     
     sam_model = sam_model_registry[args.model_type](checkpoint=join(model_save_path, "sam_model_best.pth"))
     sam_model = SAM(
@@ -127,15 +131,15 @@ def main():
     sam_model.eval()
 
     best_refine_metrics = train_refine_net(refine_net, sam_model, train_dataloader, val_dataloader, 
-                                          optimizer_refinement, scheduler, mse_loss, cl_dice, 
-                                          args.num_epochs_refine, model_save_path, args, refine_log_path)
+                                              optimizer_refinement, scheduler, mse_loss, cl_dice, 
+                                              args.num_epochs_refine, model_save_path, args, refine_log_path, scaler_refine)
 
-    log_training_summary(train_log_path, "Refinement Network", best_refine_metrics, args.num_epochs_refine)
+    log_training_summary(train_log_path, "Refinement Network (AMP)", best_refine_metrics, args.num_epochs_refine)
     log_final_summary(train_log_path, model_save_path)
 
 
-def train_sam(model, train_loader, val_loader, optimizer, seg_loss, ce_loss, num_epochs, save_path, args, log_path):
-    """Training function for SAM model"""
+def train_sam(model, train_loader, val_loader, optimizer, seg_loss, ce_loss, num_epochs, save_path, args, log_path, scaler):
+    """AMP SAM Model Training"""
     best_val_metrics = {metric: 0.0 for metric in args.metrics}
     patience_counter = 0
     patience = 5
@@ -155,10 +159,20 @@ def train_sam(model, train_loader, val_loader, optimizer, seg_loss, ce_loss, num
             point_labels = point_labels.detach().cpu().numpy()
             image, gt2D = image.to(device), gt2D.to(device)
 
-            sam_pred = model(image, point_coords, point_labels)
-            loss = seg_loss(sam_pred, gt2D) + ce_loss(sam_pred, gt2D.float())
-            loss.backward()
-            optimizer.step()
+            # Use AMP Training
+            if scaler is not None:
+                with autocast():
+                    sam_pred = model(image, point_coords, point_labels)
+                    loss = 0.6 * seg_loss(sam_pred, gt2D) + 0.4 * ce_loss(sam_pred, gt2D.float())
+                
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                sam_pred = model(image, point_coords, point_labels)
+                loss = 0.6 * seg_loss(sam_pred, gt2D) + 0.4 * ce_loss(sam_pred, gt2D.float())
+                loss.backward()
+                optimizer.step()
             
             train_batch_metrics = SegMetrics(gt2D, sam_pred, args.metrics)
             train_iter_metrics = [train_iter_metrics[i] + train_batch_metrics[i] for i in range(len(args.metrics))]
@@ -171,8 +185,13 @@ def train_sam(model, train_loader, val_loader, optimizer, seg_loss, ce_loss, num
                 point_labels = point_labels.detach().cpu().numpy()
                 image, gt2D = image.to(device), gt2D.to(device)
 
-                sam_pred = model(image, point_coords, point_labels)
-                loss = seg_loss(sam_pred, gt2D) + ce_loss(sam_pred, gt2D.float())
+                if scaler is not None:
+                    with autocast():
+                        sam_pred = model(image, point_coords, point_labels)
+                        loss = 0.6 * seg_loss(sam_pred, gt2D) + 0.4 * ce_loss(sam_pred, gt2D.float())
+                else:
+                    sam_pred = model(image, point_coords, point_labels)
+                    loss = 0.6 * seg_loss(sam_pred, gt2D) + 0.4 * ce_loss(sam_pred, gt2D.float())
 
                 val_epoch_loss += loss.item()
                 val_batch_metrics = SegMetrics(gt2D, sam_pred, args.metrics)
@@ -187,9 +206,15 @@ def train_sam(model, train_loader, val_loader, optimizer, seg_loss, ce_loss, num
         train_epoch_loss /= (step_train + 1)
         val_epoch_loss /= (step_val + 1)
 
+        amp_info = ""
+        if scaler is not None:
+            amp_info = f" | AMP Scale: {scaler.get_scale():.0f}"
+
         log_epoch_results(log_path, epoch, args.lr, train_epoch_loss, val_epoch_loss, train_metrics, val_metrics, args)
         
         print_training_info(epoch, train_epoch_loss, val_epoch_loss, train_metrics, val_metrics)
+        if amp_info:
+            print(f"AMP Info: {amp_info}")
         
         current_val_metrics = {args.metrics[i]: float(val_iter_metrics[i]) / l_val for i in range(len(args.metrics))}
         checkpoint = {
@@ -197,6 +222,9 @@ def train_sam(model, train_loader, val_loader, optimizer, seg_loss, ce_loss, num
             "optimizer": optimizer.state_dict(),
             "epoch": epoch,
         }
+        if scaler is not None:
+            checkpoint["scaler"] = scaler.state_dict()
+        
         torch.save(checkpoint, join(save_path, "sam_model_latest.pth"))
         
         improved = False
@@ -218,8 +246,8 @@ def train_sam(model, train_loader, val_loader, optimizer, seg_loss, ce_loss, num
 
 
 def train_refine_net(refine_net, sam_model, train_loader, val_loader, optimizer, scheduler, 
-                     mse_loss, cl_dice, num_epochs, save_path, args, log_path):
-    """Training function for Refinement Network"""
+                         mse_loss, cl_dice, num_epochs, save_path, args, log_path, scaler):
+    """AMP Refinement Network Training"""
     best_loss = 1e4
     best_val_metrics = {metric: 0.0 for metric in args.metrics}
     l = len(train_loader)
@@ -241,15 +269,29 @@ def train_refine_net(refine_net, sam_model, train_loader, val_loader, optimizer,
             image, gt2D = image.to(device), gt2D.to(device)
 
             with torch.no_grad():
-                sam_pred = sam_model(image, point_coords, point_labels)
+                if scaler is not None:
+                    with autocast():
+                        sam_pred = sam_model(image, point_coords, point_labels)
+                else:
+                    sam_pred = sam_model(image, point_coords, point_labels)
             
             sam_pred_512 = F.interpolate(sam_pred, size=(512, 512), mode='bilinear', align_corners=False)
-            refined_pred_512 = refine_net(sam_pred_512)
-            refined_pred = F.interpolate(refined_pred_512, size=(image.shape[2], image.shape[3]), mode='bilinear', align_corners=False)
             
-            loss = mse_loss(refined_pred, gt2D.float()) + cl_dice(gt2D.float(), refined_pred)
-            loss.backward()
-            optimizer.step()
+            if scaler is not None:
+                with autocast():
+                    refined_pred_512 = refine_net(sam_pred_512)
+                    refined_pred = F.interpolate(refined_pred_512, size=(image.shape[2], image.shape[3]), mode='bilinear', align_corners=False)
+                    loss = 0.4 * mse_loss(refined_pred, gt2D.float()) + 0.6 * cl_dice(gt2D.float(), refined_pred)
+                
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                refined_pred_512 = refine_net(sam_pred_512)
+                refined_pred = F.interpolate(refined_pred_512, size=(image.shape[2], image.shape[3]), mode='bilinear', align_corners=False)
+                loss = 0.4 * mse_loss(refined_pred, gt2D.float()) + 0.6 * cl_dice(gt2D.float(), refined_pred)
+                loss.backward()
+                optimizer.step()
             
             train_batch_metrics = SegMetrics(gt2D, refined_pred, args.metrics)
             train_iter_metrics = [train_iter_metrics[i] + train_batch_metrics[i] for i in range(len(args.metrics))]
@@ -262,12 +304,19 @@ def train_refine_net(refine_net, sam_model, train_loader, val_loader, optimizer,
                 point_labels = point_labels.detach().cpu().numpy()
                 image, gt2D = image.to(device), gt2D.to(device)
 
-                sam_pred = sam_model(image, point_coords, point_labels)
-                sam_pred_512 = F.interpolate(sam_pred, size=(512, 512), mode='bilinear', align_corners=False)
-                refined_pred_512 = refine_net(sam_pred_512)
-                refined_pred = F.interpolate(refined_pred_512, size=(image.shape[2], image.shape[3]), mode='bilinear', align_corners=False)
-
-                loss = mse_loss(refined_pred, gt2D.float()) + cl_dice(gt2D.float(), refined_pred)
+                if scaler is not None:
+                    with autocast():
+                        sam_pred = sam_model(image, point_coords, point_labels)
+                        sam_pred_512 = F.interpolate(sam_pred, size=(512, 512), mode='bilinear', align_corners=False)
+                        refined_pred_512 = refine_net(sam_pred_512)
+                        refined_pred = F.interpolate(refined_pred_512, size=(image.shape[2], image.shape[3]), mode='bilinear', align_corners=False)
+                        loss = 0.4 * mse_loss(refined_pred, gt2D.float()) + 0.6 * cl_dice(gt2D.float(), refined_pred)
+                else:
+                    sam_pred = sam_model(image, point_coords, point_labels)
+                    sam_pred_512 = F.interpolate(sam_pred, size=(512, 512), mode='bilinear', align_corners=False)
+                    refined_pred_512 = refine_net(sam_pred_512)
+                    refined_pred = F.interpolate(refined_pred_512, size=(image.shape[2], image.shape[3]), mode='bilinear', align_corners=False)
+                    loss = 0.4 * mse_loss(refined_pred, gt2D.float()) + 0.6 * cl_dice(gt2D.float(), refined_pred)
 
                 val_epoch_loss += loss.item()
                 val_batch_metrics = SegMetrics(gt2D, refined_pred, args.metrics)
@@ -287,6 +336,9 @@ def train_refine_net(refine_net, sam_model, train_loader, val_loader, optimizer,
         
         print_training_info(epoch, train_epoch_loss, val_epoch_loss, train_metrics, val_metrics)
         
+        if scaler is not None:
+            print(f"AMP Scale: {scaler.get_scale():.0f}")
+        
         scheduler.step()
         
         checkpoint = {
@@ -294,19 +346,29 @@ def train_refine_net(refine_net, sam_model, train_loader, val_loader, optimizer,
             "optimizer": optimizer.state_dict(),
             "epoch": epoch,
         }
+        if scaler is not None:
+            checkpoint["scaler"] = scaler.state_dict()
+        
         torch.save(checkpoint, join(save_path, "refinement_model_latest.pth"))
         
         if val_epoch_loss < best_loss:
             best_loss = val_epoch_loss
             best_val_metrics = val_metrics.copy()
-            checkpoint = {
-                "model": refine_net.state_dict(),
-                "optimizer": optimizer.state_dict(),
-                "epoch": epoch,
-            }
             torch.save(checkpoint, join(save_path, "refinement_model_best.pth"))
 
     return best_val_metrics
+
+
+def monitor_amp_training(scaler, loss, epoch, step):
+    """Monitor AMP Training Status"""
+    if scaler is not None and scaler.is_enabled():
+        print(f"Epoch {epoch}, Step {step}:")
+        print(f"  Loss: {loss.item():.4f}")
+        print(f"  Scale: {scaler.get_scale():.0f}")
+        
+        # Check if gradient scaling is reduced
+        if scaler.get_scale() < 1:
+            print("  Warning: Gradient scaling reduced!")
 
 
 if __name__ == "__main__":

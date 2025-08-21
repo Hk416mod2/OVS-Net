@@ -1,0 +1,29 @@
+{
+    "images/ca_XCAD_00026_38.png": [
+        "masks/ca_XCAD_00026_38.png"
+    ],
+    "images/ca_XCAD_00214_29.png": [
+        "masks/ca_XCAD_00214_29.png"
+    ],
+    "images/ca_XCAD_00475_44.png": [
+        "masks/ca_XCAD_00475_44.png"
+    ],
+    "images/ca_XCAD_00242_44.png": [
+        "masks/ca_XCAD_00242_44.png"
+    ],
+    "images/ca_XCAD_00087_33.png": [
+        "masks/ca_XCAD_00087_33.png"
+    ],
+    "images/ca_XCAD_00303_28.png": [
+        "masks/ca_XCAD_00303_28.png"
+    ],
+    "images/ca_XCAD_00256_39.png": [
+        "masks/ca_XCAD_00256_39.png"
+    ],
+    "images/ca_XCAD_00018_33.png": [
+        "masks/ca_XCAD_00018_33.png"
+    ],
+    "images/ca_XCAD_00158_49.png": [
+        "masks/ca_XCAD_00158_49.png"
+    ]
+}
