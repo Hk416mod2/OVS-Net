@@ -36,7 +36,7 @@ We have placed some image samples and JSON generating scripts in `/Dataset`
 
 We use SAM vit-b checkpoint for finetuning, you can download it from [here](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)
 
-Prepare data and json file it in `/Dataset`
+Prepare data and json file in `/Dataset`
 
 Run `python train.py`
 
