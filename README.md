@@ -3,14 +3,14 @@
 
 ## Usage
 
-### Installiation
+### Installation
 
 ```
 conda create -n ovs python=3.12
 conda activate ovs
 git clone https://github.com/Hk416mod2/OVS-Net.git
 cd /OVS-Net
-pip install -r requirement.txt
+pip install -r requirements.txt
 ```
 
 ### Data Prepare
