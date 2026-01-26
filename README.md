@@ -65,7 +65,7 @@ We use these dataset to train our model:
 | FIVES         | Retina              | Fundus   | 2048×2048  | 540/60/200 | Public | [Link](https://www5.cs.fau.de/research/data/fundus-images/)|
 | Les-AV        | Retina              | Fundus   | 1620×1444  | 18/2/2    | Public | [Link](https://figshare.com/articles/dataset/LES-AV_dataset/1185769)|
 | ORVS         | Retina              | Fundus   | 1444×1444  | 38/4/7    | Public | [Link](https://github.com/AbdullahSarhan/ICPRVessels)|
-| STARE        | Retina              | Fundus   | 605×700    | 16/2/2    | Public | [Link](https://cecas.clemson.edu/~ahoover/stare/) |
+| STARE        | Retina              | Fundus   | 605×700    | 14/2/4    | Public | [Link](https://cecas.clemson.edu/~ahoover/stare/) |
 | ROSE-1       | Retina              | OCTA     | 304×304    | 27/3/9    | Permission | [Link](https://imed.nimte.ac.cn/dataofrose.html) |
 | ROSSA        | Retina              | OCTA     | 320×320    | 736/82/100 | Public | [Link](https://github.com/nhjydywd/OCTA-FRNet) |
 | OCTA500-3M   | Retina              | OCTA     | 304×304    | 135/15/50  | Permission | [Link](https://ieee-dataport.org/open-access/octa-500) |
